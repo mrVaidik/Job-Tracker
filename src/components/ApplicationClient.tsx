@@ -19,7 +19,7 @@ import {
 import { AppDispatch, RootState } from "@/store";
 
 import {
-  setApplications,
+  fetchApplications,
   setViewMode,
   deleteApplication,
   editApplication,
@@ -89,34 +89,8 @@ export function ApplicationsClient({
   // ─────────────────────────────────────────────
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const saved = localStorage.getItem("applications");
-
-    // PRIORITY → LOCAL STORAGE
-
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          dispatch(setApplications(parsed));
-
-          return;
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    // FALLBACK → SERVER DATA
-
-    if (initialApplications && initialApplications.length > 0) {
-      dispatch(setApplications(initialApplications));
-
-      localStorage.setItem("applications", JSON.stringify(initialApplications));
-    }
-  }, [dispatch, initialApplications]);
+    dispatch(fetchApplications());
+  }, [dispatch]);
 
   // ─────────────────────────────────────────────
   // DELETE
@@ -217,8 +191,6 @@ export function ApplicationsClient({
         {/* ACTIONS */}
 
         <div className="flex items-center gap-2">
-          {/* ADD */}
-
           <Button
             variant="outline"
             onClick={() => router.push("/add")}
@@ -228,8 +200,6 @@ export function ApplicationsClient({
             Add Application
           </Button>
 
-          {/* LIST */}
-
           <Button
             variant={viewMode === "list" ? "default" : "outline"}
             size="icon"
@@ -238,8 +208,6 @@ export function ApplicationsClient({
           >
             <List className="h-4 w-4" />
           </Button>
-
-          {/* KANBAN */}
 
           <Button
             variant={viewMode === "kanban" ? "default" : "outline"}
@@ -283,10 +251,6 @@ export function ApplicationsClient({
           )}
         </div>
       ) : (
-        // ─────────────────────────────────────────────
-        // KANBAN VIEW
-        // ─────────────────────────────────────────────
-
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div
             className="
