@@ -73,7 +73,7 @@ export function ApplicationsClient({
   const { filteredApplications } = useFilteredApplications();
 
   // ─────────────────────────────────────────────
-  // DND SENSORS
+  // DND
   // ─────────────────────────────────────────────
 
   const sensors = useSensors(
@@ -89,7 +89,33 @@ export function ApplicationsClient({
   // ─────────────────────────────────────────────
 
   useEffect(() => {
-    dispatch(setApplications(initialApplications));
+    if (typeof window === "undefined") return;
+
+    const saved = localStorage.getItem("applications");
+
+    // PRIORITY → LOCAL STORAGE
+
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          dispatch(setApplications(parsed));
+
+          return;
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    // FALLBACK → SERVER DATA
+
+    if (initialApplications && initialApplications.length > 0) {
+      dispatch(setApplications(initialApplications));
+
+      localStorage.setItem("applications", JSON.stringify(initialApplications));
+    }
   }, [dispatch, initialApplications]);
 
   // ─────────────────────────────────────────────
@@ -107,7 +133,7 @@ export function ApplicationsClient({
   };
 
   // ─────────────────────────────────────────────
-  // STATUS CHANGE
+  // STATUS
   // ─────────────────────────────────────────────
 
   const handleStatusChange = async (id: string, status: ApplicationStatus) => {
@@ -146,7 +172,9 @@ export function ApplicationsClient({
 
     if (!application) return;
 
-    if (application.status === newStatus) return;
+    if (application.status === newStatus) {
+      return;
+    }
 
     await dispatch(
       editApplication({
@@ -200,7 +228,7 @@ export function ApplicationsClient({
             Add Application
           </Button>
 
-          {/* LIST VIEW */}
+          {/* LIST */}
 
           <Button
             variant={viewMode === "list" ? "default" : "outline"}
@@ -211,7 +239,7 @@ export function ApplicationsClient({
             <List className="h-4 w-4" />
           </Button>
 
-          {/* KANBAN VIEW */}
+          {/* KANBAN */}
 
           <Button
             variant={viewMode === "kanban" ? "default" : "outline"}
@@ -241,8 +269,6 @@ export function ApplicationsClient({
               onStatusChange={handleStatusChange}
             />
           ))}
-
-          {/* EMPTY */}
 
           {filteredApplications.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center rounded-3xl border border-dashed">
