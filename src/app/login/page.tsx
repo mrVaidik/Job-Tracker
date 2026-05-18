@@ -4,21 +4,27 @@ import { useActionState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { login } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
-  const [state, formAction, isPending] = useActionState(login, { error: null });
-  
+  const [state, formAction, isPending] = useActionState(login, { error: "" });
+
   useEffect(() => {
     if (error === "login_required") {
       console.log("Please log in to continue");
     }
   }, [error]);
-  
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
