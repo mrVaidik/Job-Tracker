@@ -2,37 +2,8 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
-import {
-  JobApplication,
-  ApplicationFilters,
-  ApplicationStatus,
-  WorkType,
-} from "@/types/job";
+import { JobApplication, ApplicationFilters } from "@/types/job";
 
-// ─────────────────────────────────────────────
-// LOCAL STORAGE HELPERS
-// ─────────────────────────────────────────────
-
-const saveApplicationsToStorage = (applications: JobApplication[]) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("applications", JSON.stringify(applications));
-  }
-};
-
-const loadApplicationsFromStorage = (): JobApplication[] => {
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem("applications");
-
-    if (saved) {
-      return JSON.parse(saved);
-    }
-  }
-
-  return [];
-};
-
-// ─────────────────────────────────────────────
-// STATE
 // ─────────────────────────────────────────────
 
 interface ApplicationState {
@@ -50,9 +21,33 @@ interface ApplicationState {
 }
 
 // ─────────────────────────────────────────────
+// LOCAL STORAGE HELPERS
+// ─────────────────────────────────────────────
+
+const STORAGE_KEY = "job-tracker-applications";
+
+const getStoredApplications = (): JobApplication[] => {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveStoredApplications = (applications: JobApplication[]) => {
+  if (typeof window === "undefined") return;
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
+};
+
+// ─────────────────────────────────────────────
 
 const initialState: ApplicationState = {
-  applications: loadApplicationsFromStorage(),
+  applications: [],
 
   filters: {
     status: "all",
@@ -80,54 +75,8 @@ const initialState: ApplicationState = {
 export const fetchApplications = createAsyncThunk(
   "applications/fetchApplications",
 
-  async (filters?: {
-    status?: string;
-
-    workType?: string;
-
-    search?: string;
-
-    tags?: string[];
-  }) => {
-    try {
-      const params = new URLSearchParams();
-
-      if (filters?.status && filters.status !== "all") {
-        params.append("status", filters.status);
-      }
-
-      if (filters?.workType && filters.workType !== "all") {
-        params.append("workType", filters.workType);
-      }
-
-      if (filters?.search) {
-        params.append("search", filters.search);
-      }
-
-      if (filters?.tags?.length) {
-        params.append("tags", filters.tags.join(","));
-      }
-
-      const res = await fetch(`/api/applications?${params.toString()}`);
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch applications");
-      }
-
-      const data = (await res.json()) as JobApplication[];
-
-      if (data && Array.isArray(data) && data.length > 0) {
-        saveApplicationsToStorage(data);
-
-        return data;
-      }
-
-      return loadApplicationsFromStorage();
-    } catch (error) {
-      console.error(error);
-
-      return loadApplicationsFromStorage();
-    }
+  async () => {
+    return getStoredApplications();
   },
 );
 
@@ -139,37 +88,23 @@ export const createApplication = createAsyncThunk(
   "applications/createApplication",
 
   async (data: Omit<JobApplication, "id" | "createdAt" | "updatedAt">) => {
-    try {
-      const res = await fetch("/api/applications", {
-        method: "POST",
+    const applications = getStoredApplications();
 
-        headers: {
-          "Content-Type": "application/json",
-        },
+    const newApplication: JobApplication = {
+      id: crypto.randomUUID(),
 
-        body: JSON.stringify(data),
-      });
+      createdAt: new Date().toISOString(),
 
-      if (!res.ok) {
-        throw new Error("Failed to create application");
-      }
+      updatedAt: new Date().toISOString(),
 
-      return (await res.json()) as JobApplication;
-    } catch (error) {
-      console.error(error);
+      ...data,
+    };
 
-      const newApplication: JobApplication = {
-        id: crypto.randomUUID(),
+    const updated = [newApplication, ...applications];
 
-        createdAt: new Date().toISOString(),
+    saveStoredApplications(updated);
 
-        updatedAt: new Date().toISOString(),
-
-        ...data,
-      };
-
-      return newApplication;
-    }
+    return newApplication;
   },
 );
 
@@ -188,30 +123,23 @@ export const editApplication = createAsyncThunk(
 
     data: Partial<JobApplication>;
   }) => {
-    try {
-      const res = await fetch(`/api/applications/${id}`, {
-        method: "PUT",
+    const applications = getStoredApplications();
 
-        headers: {
-          "Content-Type": "application/json",
-        },
+    const updatedApplications = applications.map((app) =>
+      app.id === id
+        ? {
+            ...app,
+            ...data,
+            updatedAt: new Date().toISOString(),
+          }
+        : app,
+    );
 
-        body: JSON.stringify(data),
-      });
+    saveStoredApplications(updatedApplications);
 
-      if (!res.ok) {
-        throw new Error("Failed to update application");
-      }
+    const updatedApplication = updatedApplications.find((app) => app.id === id);
 
-      return (await res.json()) as JobApplication;
-    } catch (error) {
-      console.error(error);
-
-      return {
-        id,
-        ...data,
-      } as JobApplication;
-    }
+    return updatedApplication!;
   },
 );
 
@@ -223,21 +151,13 @@ export const deleteApplication = createAsyncThunk(
   "applications/deleteApplication",
 
   async (id: string) => {
-    try {
-      const res = await fetch(`/api/applications/${id}`, {
-        method: "DELETE",
-      });
+    const applications = getStoredApplications();
 
-      if (!res.ok) {
-        throw new Error("Failed to delete application");
-      }
+    const updated = applications.filter((app) => app.id !== id);
 
-      return id;
-    } catch (error) {
-      console.error(error);
+    saveStoredApplications(updated);
 
-      return id;
-    }
+    return id;
   },
 );
 
@@ -253,8 +173,6 @@ const applicationSlice = createSlice({
   reducers: {
     setApplications: (state, action: PayloadAction<JobApplication[]>) => {
       state.applications = action.payload;
-
-      saveApplicationsToStorage(action.payload);
     },
 
     setFilters: (state, action: PayloadAction<Partial<ApplicationFilters>>) => {
@@ -295,8 +213,6 @@ const applicationSlice = createSlice({
         state.status = "succeeded";
 
         state.applications = action.payload;
-
-        saveApplicationsToStorage(action.payload);
       })
 
       .addCase(fetchApplications.rejected, (state, action) => {
@@ -309,8 +225,6 @@ const applicationSlice = createSlice({
 
       .addCase(createApplication.fulfilled, (state, action) => {
         state.applications.unshift(action.payload);
-
-        saveApplicationsToStorage(state.applications);
       })
 
       // EDIT
@@ -321,13 +235,7 @@ const applicationSlice = createSlice({
         );
 
         if (index !== -1) {
-          state.applications[index] = {
-            ...state.applications[index],
-
-            ...action.payload,
-          };
-
-          saveApplicationsToStorage(state.applications);
+          state.applications[index] = action.payload;
         }
       })
 
@@ -337,8 +245,6 @@ const applicationSlice = createSlice({
         state.applications = state.applications.filter(
           (app) => app.id !== action.payload,
         );
-
-        saveApplicationsToStorage(state.applications);
       });
   },
 });
