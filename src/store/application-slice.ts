@@ -151,11 +151,36 @@ export const deleteApplication = createAsyncThunk(
   "applications/deleteApplication",
 
   async (id: string) => {
+    // ─────────────────────────────
+    // DELETE APPLICATIONS
+    // ─────────────────────────────
+
     const applications = getStoredApplications();
 
-    const updated = applications.filter((app) => app.id !== id);
+    const updatedApplications = applications.filter((app) => app.id !== id);
 
-    saveStoredApplications(updated);
+    saveStoredApplications(updatedApplications);
+
+    // ─────────────────────────────
+    // DELETE RELATED INTERVIEWS
+    // ─────────────────────────────
+
+    if (typeof window !== "undefined") {
+      const interviewsRaw = localStorage.getItem("job-tracker-interviews");
+
+      if (interviewsRaw) {
+        const interviews = JSON.parse(interviewsRaw);
+
+        const updatedInterviews = interviews.filter(
+          (interview: any) => interview.applicationId !== id,
+        );
+
+        localStorage.setItem(
+          "job-tracker-interviews",
+          JSON.stringify(updatedInterviews),
+        );
+      }
+    }
 
     return id;
   },
