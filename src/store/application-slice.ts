@@ -1,37 +1,27 @@
-// store/application-slice.ts
-
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-
 import { JobApplication, ApplicationFilters } from "@/types/job";
-
-// ─────────────────────────────────────────────
 
 interface ApplicationState {
   applications: JobApplication[];
-
   filters: ApplicationFilters;
-
   selectedApplication: JobApplication | null;
-
   viewMode: "list" | "kanban";
 
+  // FIXED
   status: "idle" | "loading" | "succeeded" | "failed";
 
+  initialized: boolean;
   error: string | null;
 }
 
-// ─────────────────────────────────────────────
-// LOCAL STORAGE HELPERS
-// ─────────────────────────────────────────────
-
 const STORAGE_KEY = "job-tracker-applications";
+const VIEW_MODE_KEY = "job-tracker-view-mode";
 
 const getStoredApplications = (): JobApplication[] => {
   if (typeof window === "undefined") return [];
 
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-
     return data ? JSON.parse(data) : [];
   } catch {
     return [];
@@ -44,85 +34,71 @@ const saveStoredApplications = (applications: JobApplication[]) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
 };
 
-// ─────────────────────────────────────────────
+export const getStoredViewMode = (): "list" | "kanban" => {
+  if (typeof window === "undefined") return "list";
+
+  const mode = localStorage.getItem(VIEW_MODE_KEY);
+
+  return mode === "kanban" ? "kanban" : "list";
+};
+
+const saveViewMode = (mode: "list" | "kanban") => {
+  if (typeof window === "undefined") return;
+
+  localStorage.setItem(VIEW_MODE_KEY, mode);
+};
 
 const initialState: ApplicationState = {
   applications: [],
 
   filters: {
     status: "all",
-
     workType: "all",
-
     search: "",
-
     tags: [],
   },
 
   selectedApplication: null,
 
-  viewMode: "list",
+  viewMode: typeof window !== "undefined" ? getStoredViewMode() : "list",
 
+  // FIXED
   status: "idle",
 
+  initialized: false,
   error: null,
 };
 
-// ─────────────────────────────────────────────
-// FETCH
-// ─────────────────────────────────────────────
-
 export const fetchApplications = createAsyncThunk(
   "applications/fetchApplications",
-
   async () => {
     return getStoredApplications();
   },
 );
 
-// ─────────────────────────────────────────────
-// CREATE
-// ─────────────────────────────────────────────
-
 export const createApplication = createAsyncThunk(
   "applications/createApplication",
-
   async (data: Omit<JobApplication, "id" | "createdAt" | "updatedAt">) => {
     const applications = getStoredApplications();
 
     const newApplication: JobApplication = {
       id: crypto.randomUUID(),
-
       createdAt: new Date().toISOString(),
-
       updatedAt: new Date().toISOString(),
-
       ...data,
     };
 
-    const updated = [newApplication, ...applications];
+    const updatedApplications = [newApplication, ...applications];
 
-    saveStoredApplications(updated);
+    saveStoredApplications(updatedApplications);
 
     return newApplication;
   },
 );
 
-// ─────────────────────────────────────────────
-// EDIT
-// ─────────────────────────────────────────────
-
 export const editApplication = createAsyncThunk(
   "applications/editApplication",
-
-  async ({
-    id,
-    data,
-  }: {
-    id: string;
-
-    data: Partial<JobApplication>;
-  }) => {
+  async ({ id, data }: { id: string; data: Partial<JobApplication> }) => {
     const applications = getStoredApplications();
 
     const updatedApplications = applications.map((app) =>
@@ -137,58 +113,22 @@ export const editApplication = createAsyncThunk(
 
     saveStoredApplications(updatedApplications);
 
-    const updatedApplication = updatedApplications.find((app) => app.id === id);
-
-    return updatedApplication!;
+    return updatedApplications.find((app) => app.id === id)!;
   },
 );
 
-// ─────────────────────────────────────────────
-// DELETE
-// ─────────────────────────────────────────────
-
 export const deleteApplication = createAsyncThunk(
   "applications/deleteApplication",
-
   async (id: string) => {
-    // ─────────────────────────────
-    // DELETE APPLICATIONS
-    // ─────────────────────────────
-
     const applications = getStoredApplications();
 
     const updatedApplications = applications.filter((app) => app.id !== id);
 
     saveStoredApplications(updatedApplications);
 
-    // ─────────────────────────────
-    // DELETE RELATED INTERVIEWS
-    // ─────────────────────────────
-
-    if (typeof window !== "undefined") {
-      const interviewsRaw = localStorage.getItem("job-tracker-interviews");
-
-      if (interviewsRaw) {
-        const interviews = JSON.parse(interviewsRaw);
-
-        const updatedInterviews = interviews.filter(
-          (interview: any) => interview.applicationId !== id,
-        );
-
-        localStorage.setItem(
-          "job-tracker-interviews",
-          JSON.stringify(updatedInterviews),
-        );
-      }
-    }
-
     return id;
   },
 );
-
-// ─────────────────────────────────────────────
-// SLICE
-// ─────────────────────────────────────────────
 
 const applicationSlice = createSlice({
   name: "applications",
@@ -196,10 +136,6 @@ const applicationSlice = createSlice({
   initialState,
 
   reducers: {
-    setApplications: (state, action: PayloadAction<JobApplication[]>) => {
-      state.applications = action.payload;
-    },
-
     setFilters: (state, action: PayloadAction<Partial<ApplicationFilters>>) => {
       state.filters = {
         ...state.filters,
@@ -220,6 +156,8 @@ const applicationSlice = createSlice({
 
     setViewMode: (state, action: PayloadAction<"list" | "kanban">) => {
       state.viewMode = action.payload;
+
+      saveViewMode(action.payload);
     },
   },
 
@@ -227,33 +165,28 @@ const applicationSlice = createSlice({
     builder
 
       // FETCH
-
       .addCase(fetchApplications.pending, (state) => {
         state.status = "loading";
-
-        state.error = null;
       })
 
       .addCase(fetchApplications.fulfilled, (state, action) => {
         state.status = "succeeded";
-
+        state.initialized = true;
         state.applications = action.payload;
       })
 
       .addCase(fetchApplications.rejected, (state, action) => {
         state.status = "failed";
-
-        state.error = action.error.message || "Failed to fetch";
+        state.initialized = true;
+        state.error = action.error.message || "Failed to fetch applications";
       })
 
       // CREATE
-
       .addCase(createApplication.fulfilled, (state, action) => {
         state.applications.unshift(action.payload);
       })
 
       // EDIT
-
       .addCase(editApplication.fulfilled, (state, action) => {
         const index = state.applications.findIndex(
           (app) => app.id === action.payload.id,
@@ -265,7 +198,6 @@ const applicationSlice = createSlice({
       })
 
       // DELETE
-
       .addCase(deleteApplication.fulfilled, (state, action) => {
         state.applications = state.applications.filter(
           (app) => app.id !== action.payload,
@@ -274,16 +206,7 @@ const applicationSlice = createSlice({
   },
 });
 
-// ─────────────────────────────────────────────
-
-export const {
-  setApplications,
-  setFilters,
-  clearFilters,
-  setSelectedApplication,
-  setViewMode,
-} = applicationSlice.actions;
-
-// ─────────────────────────────────────────────
+export const { setFilters, clearFilters, setSelectedApplication, setViewMode } =
+  applicationSlice.actions;
 
 export default applicationSlice.reducer;

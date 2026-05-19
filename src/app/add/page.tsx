@@ -1,4 +1,4 @@
-// app/add/page.tsx
+
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -30,9 +30,6 @@ import { useState, useCallback } from "react";
 
 import { AlertCircle, CheckCircle2, BriefcaseBusiness } from "lucide-react";
 
-// ─────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────
 
 type FormValues = {
   company: string;
@@ -50,10 +47,6 @@ type FormValues = {
 };
 
 type ValidationErrors = Partial<Record<keyof FormValues, string>>;
-
-// ─────────────────────────────────────────────────────────────
-// INITIAL STATE
-// ─────────────────────────────────────────────────────────────
 
 const INITIAL: FormValues = {
   company: "",
@@ -268,9 +261,6 @@ function validate(v: FormValues): ValidationErrors {
   return e;
 }
 
-// ─────────────────────────────────────────────────────────────
-// UI HELPERS
-// ─────────────────────────────────────────────────────────────
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
@@ -309,10 +299,6 @@ function inputCls(error?: string, valid?: boolean) {
 
   return base;
 }
-
-// ─────────────────────────────────────────────────────────────
-// PAGE
-// ─────────────────────────────────────────────────────────────
 
 export default function AddApplicationPage() {
   const router = useRouter();

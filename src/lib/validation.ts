@@ -16,7 +16,7 @@ export const applicationSchema = z.object({
     "withdrawn",
   ] as const),
   appliedDate: z.string().min(1, "Applied date is required"),
-  url: z.string().optional(), // now accepts any string (no URL validation)
+  url: z.string().optional(), 
   contactName: z.string().optional(),
   contactEmail: z
     .string()

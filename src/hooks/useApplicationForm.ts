@@ -1,8 +1,9 @@
-// hooks/use-application-form.ts
 import { useState, useCallback, useEffect } from "react";
 import { applicationSchema, ApplicationFormValues } from "@/lib/validation";
 import { JobApplication, ApplicationStatus, WorkType } from "@/types/job";
 import { z } from "zod";
+
+type FormValues = z.infer<typeof applicationSchema>;
 
 interface UseApplicationFormProps {
   initialValues?: Partial<JobApplication>;
@@ -11,49 +12,61 @@ interface UseApplicationFormProps {
   ) => Promise<void>;
 }
 
-export function useApplicationForm({
-  initialValues,
-  onSubmit,
-}: UseApplicationFormProps) {
-  // Default values matching Zod schema
-  const getDefaultValues = (): Partial<ApplicationFormValues> => ({
+function getDefaultValues(): FormValues {
+  return {
     company: "",
     role: "",
     location: "",
-    workType: "remote" as WorkType,
-    status: "saved" as ApplicationStatus,
-    appliedDate: new Date().toISOString().split("T")[0], // today's date
+    workType: "remote",
+    status: "saved",
+    appliedDate: new Date().toISOString().split("T")[0],
     salary: "",
     url: "",
     contactName: "",
     contactEmail: "",
     notes: "",
     tags: [],
-  });
+  };
+}
 
-  const [values, setValues] = useState<Partial<ApplicationFormValues>>({
-    ...getDefaultValues(),
-    ...initialValues,
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [initialState, setInitialState] = useState(values);
+export function useApplicationForm({
+  initialValues,
+  onSubmit,
+}: UseApplicationFormProps) {
+  const computeInitialState = useCallback((): FormValues => {
+    const defaults = getDefaultValues();
+    if (!initialValues) return defaults;
 
-  useEffect(() => {
-    // Reset when initialValues change (e.g., editing)
-    const newInitial = {
-      ...getDefaultValues(),
+    return {
+      ...defaults,
       ...initialValues,
+
+      tags: initialValues.tags ?? defaults.tags,
+      workType: (initialValues.workType as WorkType) ?? defaults.workType,
+      status: (initialValues.status as ApplicationStatus) ?? defaults.status,
     };
-    setValues(newInitial);
-    setInitialState(newInitial);
   }, [initialValues]);
 
+  const [values, setValues] = useState<FormValues>(computeInitialState());
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [initialState, setInitialState] = useState<FormValues>(values);
+
+  useEffect(() => {
+    const newState = computeInitialState();
+    setValues(newState);
+    setInitialState(newState);
+  }, [computeInitialState]);
+
   const handleChange = useCallback(
-    (field: string, value: any) => {
+    <K extends keyof FormValues>(field: K, value: FormValues[K]) => {
       setValues((prev) => ({ ...prev, [field]: value }));
-      // Clear error for that field when user starts typing
-      if (errors[field]) {
-        setErrors((prev) => ({ ...prev, [field]: "" }));
+
+      if (errors[field as string]) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[field as string];
+          return newErrors;
+        });
       }
     },
     [errors],
@@ -66,9 +79,10 @@ export function useApplicationForm({
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
-        error.issues.forEach((err) => {
-          if (err.path[0]) {
-            newErrors[err.path[0].toString()] = err.message;
+        error.issues.forEach((issue) => {
+          const path = issue.path[0];
+          if (typeof path === "string") {
+            newErrors[path] = issue.message;
           }
         });
         return newErrors;
@@ -84,7 +98,6 @@ export function useApplicationForm({
       return;
     }
 
-    // Prepare data for API (all required fields are guaranteed by Zod)
     const submitData = values as Omit<
       JobApplication,
       "id" | "createdAt" | "updatedAt"

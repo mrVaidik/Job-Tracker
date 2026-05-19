@@ -1,18 +1,25 @@
 // app/interviews/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+
 import { AppDispatch, RootState } from "@/store";
+
 import {
   fetchInterviews,
   scheduleInterview,
   cancelInterview,
   editInterview,
 } from "@/store/interview-slice";
+
 import { fetchApplications } from "@/store/application-slice";
+
 import { InterviewCard } from "@/components/InterviewCard";
+import { InterviewCardSkeleton } from "@/components/InterViewcardSkeleton"; // fixed typo
+
 import { Button } from "@/components/ui/button";
+
 import {
   Dialog,
   DialogContent,
@@ -20,8 +27,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
 import {
   Select,
   SelectContent,
@@ -29,13 +38,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import { Textarea } from "@/components/ui/textarea";
+
 import { Interview } from "@/types/job";
+
+// Define a type for interview type to avoid repeating union
+type InterviewType = Interview["type"];
 
 const EMPTY_FORM = {
   applicationId: "",
   round: 1,
-  type: "phone" as const,
+  type: "phone" as InterviewType,
   scheduledAt: "",
   duration: 30,
   interviewerName: "",
@@ -46,67 +60,85 @@ type FormErrors = Partial<Record<keyof typeof EMPTY_FORM, string>>;
 
 export default function InterviewsPage() {
   const dispatch = useDispatch<AppDispatch>();
-  const interviews = useSelector(
-    (state: RootState) => state.interviews.interviews,
+
+  const { interviews, loading } = useSelector(
+    (state: RootState) => state.interviews,
   );
-  const applications = useSelector(
-    (state: RootState) => state.applications.applications,
+
+  const { applications } = useSelector(
+    (state: RootState) => state.applications,
   );
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+
   const [formData, setFormData] = useState(EMPTY_FORM);
+
   const [errors, setErrors] = useState<FormErrors>({});
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [showPast, setShowPast] = useState(false);
 
+  // Minimum DateTime
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const minDateTime = today.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
+  const minDateTime = today.toISOString().slice(0, 16);
 
+  // Fetch Data
   useEffect(() => {
     dispatch(fetchInterviews());
     dispatch(fetchApplications());
   }, [dispatch]);
 
-  const upcoming = interviews
-    .filter((i) => new Date(i.scheduledAt) > new Date())
-    .sort(
-      (a, b) =>
-        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
-    );
+  // Upcoming Interviews
+  const upcoming = useMemo(() => {
+    return interviews
+      .filter((i) => new Date(i.scheduledAt) > new Date())
+      .sort(
+        (a, b) =>
+          new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+      );
+  }, [interviews]);
 
-  const past = interviews
-    .filter((i) => new Date(i.scheduledAt) <= new Date())
-    .sort(
-      (a, b) =>
-        new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime(),
-    );
+  // Past Interviews
+  const past = useMemo(() => {
+    return interviews
+      .filter((i) => new Date(i.scheduledAt) <= new Date())
+      .sort(
+        (a, b) =>
+          new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime(),
+      );
+  }, [interviews]);
 
-  // ── Validation ────────────────────────────────────────────────────────────
+  // Validation
   const validate = (): FormErrors => {
     const e: FormErrors = {};
 
-    if (!formData.applicationId)
+    if (!formData.applicationId) {
       e.applicationId = "Please select an application.";
-
-    if (!formData.round || formData.round < 1)
+    }
+    if (!formData.round || formData.round < 1) {
       e.round = "Round must be at least 1.";
-
-    if (!formData.type) e.type = "Please select an interview type.";
-
-    if (!formData.scheduledAt) e.scheduledAt = "Please pick a date and time.";
-    else if (new Date(formData.scheduledAt) <= new Date())
-      e.scheduledAt = "Scheduled time must be in the future.";
-
-    if (!formData.duration || formData.duration < 5)
+    }
+    if (!formData.type) {
+      e.type = "Please select interview type.";
+    }
+    if (!formData.scheduledAt) {
+      e.scheduledAt = "Please select date & time.";
+    } else if (new Date(formData.scheduledAt) <= new Date()) {
+      e.scheduledAt = "Interview must be scheduled in future.";
+    }
+    if (!formData.duration || formData.duration < 5) {
       e.duration = "Duration must be at least 5 minutes.";
-
-    if (!formData.interviewerName.trim())
+    }
+    if (!formData.interviewerName.trim()) {
       e.interviewerName = "Interviewer name is required.";
+    }
 
     return e;
   };
 
-  // ── Submit ────────────────────────────────────────────────────────────────
+  // Schedule Interview
   const handleSchedule = async () => {
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -114,26 +146,31 @@ export default function InterviewsPage() {
       return;
     }
 
-    setIsSubmitting(true);
     try {
+      setIsSubmitting(true);
       await dispatch(scheduleInterview(formData)).unwrap();
-      await dispatch(fetchInterviews()); // refresh list
-      setIsModalOpen(false);
+      await dispatch(fetchInterviews());
       setFormData(EMPTY_FORM);
       setErrors({});
-    } catch (err) {
-      console.error("Failed to schedule interview:", err);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Failed to schedule interview:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Clear a field's error as soon as the user fixes it
+  // Clear Error
   const clearError = (field: keyof FormErrors) => {
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+    if (errors[field]) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: undefined,
+      }));
+    }
   };
 
-  // ── Close / reset modal ───────────────────────────────────────────────────
+  // Modal Reset
   const handleOpenChange = (open: boolean) => {
     setIsModalOpen(open);
     if (!open) {
@@ -142,29 +179,42 @@ export default function InterviewsPage() {
     }
   };
 
-  // ── Edit / Delete ─────────────────────────────────────────────────────────
+  // Edit Interview (toggle outcome)
   const handleEdit = async (interview: Interview) => {
-    const newOutcome = interview.outcome === "pass" ? "fail" : "pass";
-    await dispatch(
-      editInterview({ id: interview.id, data: { outcome: newOutcome } }),
-    );
-    await dispatch(fetchInterviews());
+    try {
+      const newOutcome = interview.outcome === "pass" ? "fail" : "pass";
+      await dispatch(
+        editInterview({
+          id: interview.id,
+          data: { outcome: newOutcome },
+        }),
+      ).unwrap();
+      await dispatch(fetchInterviews());
+    } catch (error) {
+      console.error(error);
+    }
   };
 
+  // Delete Interview
   const handleDelete = async (id: string) => {
-    await dispatch(cancelInterview(id));
-    await dispatch(fetchInterviews());
+    try {
+      await dispatch(cancelInterview(id)).unwrap();
+      await dispatch(fetchInterviews());
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // Error Message Component
   const ErrorMsg = ({ field }: { field: keyof FormErrors }) =>
     errors[field] ? (
-      <p className="text-sm text-red-500 mt-1">{errors[field]}</p>
+      <p className="mt-1 text-sm text-red-500">{errors[field]}</p>
     ) : null;
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Interviews</h1>
 
         <Dialog open={isModalOpen} onOpenChange={handleOpenChange}>
@@ -172,7 +222,7 @@ export default function InterviewsPage() {
             <Button>Schedule Interview</Button>
           </DialogTrigger>
 
-          <DialogContent>
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Schedule New Interview</DialogTitle>
             </DialogHeader>
@@ -185,8 +235,8 @@ export default function InterviewsPage() {
                 </Label>
                 <Select
                   value={formData.applicationId}
-                  onValueChange={(v) => {
-                    setFormData({ ...formData, applicationId: v });
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, applicationId: value });
                     clearError("applicationId");
                   }}
                 >
@@ -218,7 +268,7 @@ export default function InterviewsPage() {
                   onChange={(e) => {
                     setFormData({
                       ...formData,
-                      round: parseInt(e.target.value) || 1,
+                      round: Number(e.target.value) || 1,
                     });
                     clearError("round");
                   }}
@@ -230,26 +280,29 @@ export default function InterviewsPage() {
               {/* Type */}
               <div>
                 <Label>
-                  Type <span className="text-red-500">*</span>
+                  Interview Type <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={formData.type}
-                  onValueChange={(v) => {
-                    setFormData({ ...formData, type: v as any });
+                  onValueChange={(value) => {
+                    setFormData({
+                      ...formData,
+                      type: value as InterviewType,
+                    });
                     clearError("type");
                   }}
                 >
                   <SelectTrigger
                     className={errors.type ? "border-red-500" : ""}
                   >
-                    <SelectValue />
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="phone">Phone</SelectItem>
                     <SelectItem value="video">Video</SelectItem>
-                    <SelectItem value="on-site">On-site</SelectItem>
                     <SelectItem value="technical">Technical</SelectItem>
                     <SelectItem value="hr">HR</SelectItem>
+                    <SelectItem value="on-site">On-site</SelectItem>
                   </SelectContent>
                 </Select>
                 <ErrorMsg field="type" />
@@ -258,12 +311,12 @@ export default function InterviewsPage() {
               {/* Date & Time */}
               <div>
                 <Label>
-                  Date &amp; Time <span className="text-red-500">*</span>
+                  Date & Time <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   type="datetime-local"
-                  value={formData.scheduledAt}
                   min={minDateTime}
+                  value={formData.scheduledAt}
                   onChange={(e) => {
                     setFormData({ ...formData, scheduledAt: e.target.value });
                     clearError("scheduledAt");
@@ -285,7 +338,7 @@ export default function InterviewsPage() {
                   onChange={(e) => {
                     setFormData({
                       ...formData,
-                      duration: parseInt(e.target.value) || 5,
+                      duration: Number(e.target.value) || 5,
                     });
                     clearError("duration");
                   }}
@@ -313,36 +366,43 @@ export default function InterviewsPage() {
                 <ErrorMsg field="interviewerName" />
               </div>
 
-              {/* Notes (optional) */}
+              {/* Notes */}
               <div>
                 <Label>Notes</Label>
                 <Textarea
+                  placeholder="Optional notes..."
                   value={formData.notes}
                   onChange={(e) =>
                     setFormData({ ...formData, notes: e.target.value })
                   }
-                  placeholder="Optional notes..."
                 />
               </div>
 
+              {/* Submit */}
               <Button
+                className="w-full"
                 onClick={handleSchedule}
                 disabled={isSubmitting}
-                className="w-full"
               >
-                {isSubmitting ? "Scheduling…" : "Schedule"}
+                {isSubmitting ? "Scheduling..." : "Schedule Interview"}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Upcoming */}
+      {/* Upcoming Interviews */}
       <div>
-        <h2 className="text-xl font-semibold mb-3">Upcoming Interviews</h2>
+        <h2 className="mb-3 text-xl font-semibold">Upcoming Interviews</h2>
         <div className="space-y-3">
-          {upcoming.length === 0 ? (
-            <p className="text-muted-foreground">No upcoming interviews</p>
+          {loading ? (
+            <InterviewCardSkeleton count={3} />
+          ) : upcoming.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-8 text-center">
+              <p className="text-muted-foreground">
+                No upcoming interviews scheduled
+              </p>
+            </div>
           ) : (
             upcoming.map((interview) => (
               <InterviewCard
@@ -356,14 +416,16 @@ export default function InterviewsPage() {
         </div>
       </div>
 
-      {/* Past */}
+      {/* Past Interviews Toggle */}
       <div>
         <Button variant="ghost" onClick={() => setShowPast(!showPast)}>
           {showPast ? "Hide" : "Show"} Past Interviews
         </Button>
-        {showPast && (
-          <div className="space-y-3 mt-3">
-            {past.length === 0 ? (
+        {(showPast || loading) && (
+          <div className="mt-3 space-y-3">
+            {loading ? (
+              <InterviewCardSkeleton count={2} />
+            ) : past.length === 0 ? (
               <p className="text-muted-foreground">No past interviews</p>
             ) : (
               past.map((interview) => (

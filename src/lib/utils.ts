@@ -1,4 +1,4 @@
-// lib/utils.ts
+
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -48,7 +48,7 @@ export const getWeekRange = (): { start: Date; end: Date } => {
   return { start, end };
 };
 
-// ✅ Missing function – checks if a date falls within the current ISO week
+
 export const isInCurrentWeek = (dateString: string): boolean => {
   const { start, end } = getWeekRange();
   const date = new Date(dateString);

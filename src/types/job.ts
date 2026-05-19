@@ -1,4 +1,3 @@
-// types/job.ts
 export type ApplicationStatus =
   | "saved"
   | "applied"

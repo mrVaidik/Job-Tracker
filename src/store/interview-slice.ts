@@ -1,16 +1,8 @@
-// store/interview-slice.ts
-
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
 import { Interview } from "@/types/job";
 
-// ─────────────────────────────────────────────
-// STORAGE
-// ─────────────────────────────────────────────
-
 const STORAGE_KEY = "job-tracker-interviews";
-
-// ─────────────────────────────────────────────
 
 const getStoredInterviews = (): Interview[] => {
   if (typeof window === "undefined") return [];
@@ -24,40 +16,31 @@ const getStoredInterviews = (): Interview[] => {
   }
 };
 
-// ─────────────────────────────────────────────
-
 const saveStoredInterviews = (interviews: Interview[]) => {
   if (typeof window === "undefined") return;
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(interviews));
 };
 
-// ─────────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────────
-
 interface InterviewState {
   interviews: Interview[];
 
   status: "idle" | "loading" | "succeeded" | "failed";
 
+  loading: boolean;
+
   error: string | null;
 }
-
-// ─────────────────────────────────────────────
 
 const initialState: InterviewState = {
   interviews: [],
 
-  status: "idle",
+  status: "loading",
+
+  loading: true,
 
   error: null,
 };
-
-// ─────────────────────────────────────────────
-// FETCH
-// ─────────────────────────────────────────────
-
 export const fetchInterviews = createAsyncThunk(
   "interviews/fetchInterviews",
 
@@ -71,10 +54,6 @@ export const fetchInterviews = createAsyncThunk(
     return interviews.filter((i) => i.applicationId === applicationId);
   },
 );
-
-// ─────────────────────────────────────────────
-// CREATE
-// ─────────────────────────────────────────────
 
 export const scheduleInterview = createAsyncThunk(
   "interviews/scheduleInterview",
@@ -95,10 +74,6 @@ export const scheduleInterview = createAsyncThunk(
     return newInterview;
   },
 );
-
-// ─────────────────────────────────────────────
-// EDIT
-// ─────────────────────────────────────────────
 
 export const editInterview = createAsyncThunk(
   "interviews/editInterview",
@@ -130,10 +105,6 @@ export const editInterview = createAsyncThunk(
   },
 );
 
-// ─────────────────────────────────────────────
-// DELETE
-// ─────────────────────────────────────────────
-
 export const cancelInterview = createAsyncThunk(
   "interviews/cancelInterview",
 
@@ -147,10 +118,6 @@ export const cancelInterview = createAsyncThunk(
     return id;
   },
 );
-
-// ─────────────────────────────────────────────
-// SLICE
-// ─────────────────────────────────────────────
 
 const interviewSlice = createSlice({
   name: "interviews",
@@ -166,10 +133,10 @@ const interviewSlice = createSlice({
   extraReducers: (builder) => {
     builder
 
-      // FETCH
-
       .addCase(fetchInterviews.pending, (state) => {
         state.status = "loading";
+
+        state.loading = true;
 
         state.error = null;
       })
@@ -177,24 +144,40 @@ const interviewSlice = createSlice({
       .addCase(fetchInterviews.fulfilled, (state, action) => {
         state.status = "succeeded";
 
+        state.loading = false;
+
         state.interviews = action.payload;
       })
 
       .addCase(fetchInterviews.rejected, (state, action) => {
         state.status = "failed";
 
+        state.loading = false;
+
         state.error = action.error.message || "Failed to fetch interviews";
       })
 
-      // CREATE
+      .addCase(scheduleInterview.pending, (state) => {
+        state.loading = true;
+      })
 
       .addCase(scheduleInterview.fulfilled, (state, action) => {
+        state.loading = false;
+
         state.interviews.unshift(action.payload);
       })
 
-      // EDIT
+      .addCase(scheduleInterview.rejected, (state) => {
+        state.loading = false;
+      })
+
+      .addCase(editInterview.pending, (state) => {
+        state.loading = true;
+      })
 
       .addCase(editInterview.fulfilled, (state, action) => {
+        state.loading = false;
+
         const index = state.interviews.findIndex(
           (i) => i.id === action.payload.id,
         );
@@ -204,20 +187,28 @@ const interviewSlice = createSlice({
         }
       })
 
-      // DELETE
+      .addCase(editInterview.rejected, (state) => {
+        state.loading = false;
+      })
+
+      .addCase(cancelInterview.pending, (state) => {
+        state.loading = true;
+      })
 
       .addCase(cancelInterview.fulfilled, (state, action) => {
+        state.loading = false;
+
         state.interviews = state.interviews.filter(
           (i) => i.id !== action.payload,
         );
+      })
+
+      .addCase(cancelInterview.rejected, (state) => {
+        state.loading = false;
       });
   },
 });
 
-// ─────────────────────────────────────────────
-
 export const { setInterviews } = interviewSlice.actions;
-
-// ─────────────────────────────────────────────
 
 export default interviewSlice.reducer;

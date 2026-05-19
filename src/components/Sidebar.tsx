@@ -1,4 +1,3 @@
-// components/sidebar.tsx
 "use client";
 
 import Link from "next/link";
@@ -36,18 +35,20 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Desktop Sidebar - Collapsible */}
+      {}
       <aside
         className={cn(
           "hidden md:flex flex-col fixed inset-y-0 left-0 z-30 bg-card border-r shadow-sm transition-all duration-300",
-          collapsed ? "w-20" : "w-72"
+          collapsed ? "w-20" : "w-72",
         )}
       >
-        {/* Header with collapse button */}
-        <div className={cn(
-          "flex items-center h-16 px-4 border-b",
-          collapsed ? "justify-center" : "justify-between"
-        )}>
+        {}
+        <div
+          className={cn(
+            "flex items-center h-16 px-4 border-b",
+            collapsed ? "justify-center" : "justify-between",
+          )}
+        >
           {!collapsed && (
             <div className="flex items-center gap-2">
               <Target className="h-6 w-6 text-primary" />
@@ -56,10 +57,9 @@ export function Sidebar() {
               </h1>
             </div>
           )}
-         
         </div>
 
-        {/* Navigation */}
+        {}
         <ScrollArea className="flex-1 py-6">
           <nav className="space-y-1 px-3">
             {navItems.map((item) => {
@@ -73,7 +73,7 @@ export function Sidebar() {
                     isActive
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    collapsed && "justify-center px-2"
+                    collapsed && "justify-center px-2",
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -84,7 +84,7 @@ export function Sidebar() {
           </nav>
         </ScrollArea>
 
-        {/* Footer */}
+        {}
         <div className="border-t p-4 space-y-4">
           {!collapsed && (
             <>
@@ -103,7 +103,7 @@ export function Sidebar() {
             size={collapsed ? "icon" : "default"}
             className={cn(
               "w-full text-muted-foreground hover:text-destructive",
-              collapsed ? "justify-center" : "justify-start gap-2"
+              collapsed ? "justify-center" : "justify-start gap-2",
             )}
             onClick={() => logout()}
           >
@@ -113,7 +113,7 @@ export function Sidebar() {
         </div>
       </aside>
 
-      {/* Mobile Bottom Navigation */}
+      {}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-card shadow-lg z-50">
         <div className="flex justify-around py-2">
           {navItems.map((item) => {
@@ -126,7 +126,7 @@ export function Sidebar() {
                   "flex flex-col items-center gap-1 rounded-lg px-3 py-2 text-xs transition-all",
                   isActive
                     ? "text-primary font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -137,7 +137,7 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* Mobile spacer */}
+      {}
       <div className="md:hidden h-16" />
     </>
   );

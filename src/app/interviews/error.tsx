@@ -2,7 +2,7 @@
 
 import { ErrorFallback } from "@/components/ErrorFallback";
 
-export default function ApplicationsError({
+export default function InterviewsError({
   error,
   reset,
 }: {
@@ -13,8 +13,8 @@ export default function ApplicationsError({
     <ErrorFallback
       error={error}
       reset={reset}
-      title="Failed to load applications"
-      message="There was a problem loading your applications. Please try again."
+      title="Could not load interviews"
+      message="Failed to fetch your interview schedule."
     />
   );
 }

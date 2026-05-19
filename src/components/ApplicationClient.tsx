@@ -1,114 +1,56 @@
-// app/applications/applications-client.tsx
-
 "use client";
 
 import { useEffect } from "react";
-
 import { useDispatch, useSelector } from "react-redux";
-
 import { useRouter } from "next/navigation";
-
-import {
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
 
 import { AppDispatch, RootState } from "@/store";
 
 import {
   fetchApplications,
   setViewMode,
-  deleteApplication,
   editApplication,
+  deleteApplication,
 } from "@/store/application-slice";
-
-import { ApplicationCard } from "./ApplicationCard";
-
-import { KanbanColumn } from "./KanbanColumn";
-
-import { ApplicationFiltersBar } from "./ApplicationFilterBar";
-
-import { useFilteredApplications } from "@/hooks/useFilteredApplications";
-
-import { Button } from "@/components/ui/button";
-
-import { LayoutGrid, List, Plus } from "lucide-react";
 
 import { JobApplication, ApplicationStatus } from "@/types/job";
 
-// ─────────────────────────────────────────────
+import { useFilteredApplications } from "@/hooks/useFilteredApplications";
+
+import ApplicationCard from "@/components/ApplicationCard";
+import KanbanBoard from "@/components/KanbanBoard";
+import ApplicationFiltersBar from "@/components/ApplicationFilterBar";
+import ApplicationsSkeleton from "@/components/ApplicationSkeleton";
 
 interface ApplicationsClientProps {
   initialApplications: JobApplication[];
 }
 
-// ─────────────────────────────────────────────
-
-const statuses: ApplicationStatus[] = [
-  "saved",
-  "applied",
-  "phone-screen",
-  "interview",
-  "offer",
-  "rejected",
-  "withdrawn",
-];
-
-// ─────────────────────────────────────────────
-
-export function ApplicationsClient({
+export default function ApplicationsClient({
   initialApplications,
 }: ApplicationsClientProps) {
   const dispatch = useDispatch<AppDispatch>();
 
   const router = useRouter();
 
-  const viewMode = useSelector(
-    (state: RootState) => state.applications.viewMode,
-  );
+  const {
+    viewMode,
+    initialized,
+    applications: storeApplications,
+  } = useSelector((state: RootState) => state.applications);
+
+  useEffect(() => {
+    if (!initialized) {
+      dispatch(fetchApplications());
+    }
+  }, [dispatch, initialized]);
 
   const { filteredApplications } = useFilteredApplications();
 
-  // ─────────────────────────────────────────────
-  // DND
-  // ─────────────────────────────────────────────
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
-  );
-
-  // ─────────────────────────────────────────────
-  // LOAD APPLICATIONS
-  // ─────────────────────────────────────────────
-
-  useEffect(() => {
-    dispatch(fetchApplications());
-  }, [dispatch]);
-
-  // ─────────────────────────────────────────────
-  // DELETE
-  // ─────────────────────────────────────────────
-
-  const handleDelete = async (id: string) => {
-    const confirmed = confirm(
-      "Are you sure you want to delete this application?",
-    );
-
-    if (!confirmed) return;
-
-    await dispatch(deleteApplication(id));
-  };
-
-  // ─────────────────────────────────────────────
-  // STATUS
-  // ─────────────────────────────────────────────
+  const applications =
+    initialized && storeApplications.length > 0
+      ? filteredApplications
+      : initialApplications;
 
   const handleStatusChange = async (id: string, status: ApplicationStatus) => {
     await dispatch(
@@ -119,163 +61,247 @@ export function ApplicationsClient({
     );
   };
 
-  // ─────────────────────────────────────────────
-  // EDIT
-  // ─────────────────────────────────────────────
+  const handleDelete = async (id: string) => {
+    const confirmed = confirm(
+      "Delete this application? This action cannot be undone.",
+    );
+
+    if (!confirmed) return;
+
+    await dispatch(deleteApplication(id));
+  };
 
   const handleEdit = (application: JobApplication) => {
     router.push(`/edit/${application.id}`);
   };
 
-  // ─────────────────────────────────────────────
-  // DRAG END
-  // ─────────────────────────────────────────────
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over) return;
-
-    const applicationId = active.id as string;
-
-    const newStatus = over.id as ApplicationStatus;
-
-    const application = filteredApplications.find(
-      (app) => app.id === applicationId,
-    );
-
-    if (!application) return;
-
-    if (application.status === newStatus) {
-      return;
-    }
-
-    await dispatch(
-      editApplication({
-        id: applicationId,
-        data: {
-          status: newStatus,
-        },
-      }),
-    );
-  };
-
-  // ─────────────────────────────────────────────
-  // GROUP APPLICATIONS
-  // ─────────────────────────────────────────────
-
-  const applicationsByStatus = statuses.reduce(
-    (acc, status) => {
-      acc[status] = filteredApplications.filter((app) => app.status === status);
-
-      return acc;
-    },
-    {} as Record<ApplicationStatus, JobApplication[]>,
-  );
-
-  // ─────────────────────────────────────────────
+  // ✅ Proper loading skeleton
+  if (!initialized) {
+    return <ApplicationsSkeleton viewMode={viewMode} />;
+  }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* HEADER */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="border-b border-gray-200 bg-white px-6 py-5">
+        <div className="mx-auto flex max-w-screen-2xl items-center justify-between gap-4">
+          {/* Left */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
 
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">Applications</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Manage your job applications visually.
+            </p>
+          </div>
 
-          <p className="text-muted-foreground mt-1">
-            Manage your job applications visually.
-          </p>
+          {/* Right */}
+          <div className="flex items-center gap-3">
+            {/* Add Button */}
+            <button
+              onClick={() => router.push("/add")}
+              className="
+                flex
+                items-center
+                gap-2
+                rounded-xl
+                border
+                border-gray-200
+                bg-white
+                px-4
+                py-2.5
+                text-sm
+                font-medium
+                text-gray-700
+                transition-colors
+                hover:bg-gray-100
+              "
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+              Add Application
+            </button>
+
+            {/* View Toggle */}
+            <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white">
+              {/* List */}
+              <button
+                onClick={() => dispatch(setViewMode("list"))}
+                className={`
+                  flex
+                  items-center
+                  justify-center
+                  px-3
+                  py-2.5
+                  transition-colors
+                  ${
+                    viewMode === "list"
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-500 hover:bg-gray-100"
+                  }
+                `}
+                title="List View"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                  />
+                </svg>
+              </button>
+
+              {/* Kanban */}
+              <button
+                onClick={() => dispatch(setViewMode("kanban"))}
+                className={`
+                  flex
+                  items-center
+                  justify-center
+                  px-3
+                  py-2.5
+                  transition-colors
+                  ${
+                    viewMode === "kanban"
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-500 hover:bg-gray-100"
+                  }
+                `}
+                title="Kanban View"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* ACTIONS */}
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.push("/add")}
-            className="rounded-xl"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Application
-          </Button>
-
-          <Button
-            variant={viewMode === "list" ? "default" : "outline"}
-            size="icon"
-            onClick={() => dispatch(setViewMode("list"))}
-            className="rounded-xl"
-          >
-            <List className="h-4 w-4" />
-          </Button>
-
-          <Button
-            variant={viewMode === "kanban" ? "default" : "outline"}
-            size="icon"
-            onClick={() => dispatch(setViewMode("kanban"))}
-            className="rounded-xl"
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </Button>
+        {/* Filters */}
+        <div className="mx-auto mt-5 max-w-screen-2xl">
+          <ApplicationFiltersBar />
         </div>
       </div>
 
-      {/* FILTERS */}
-
-      <ApplicationFiltersBar />
-
-      {/* LIST VIEW */}
-
+      {/* Content */}
       {viewMode === "list" ? (
-        <div className="space-y-4">
-          {filteredApplications.map((app) => (
-            <ApplicationCard
-              key={app.id}
-              application={app}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-              onStatusChange={handleStatusChange}
-            />
-          ))}
-
-          {filteredApplications.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-center rounded-3xl border border-dashed">
-              <div className="text-5xl mb-4">📂</div>
-
-              <h3 className="text-lg font-semibold">No Applications Found</h3>
-
-              <p className="text-sm text-muted-foreground mt-1">
-                Try adjusting your filters.
-              </p>
-            </div>
-          )}
-        </div>
+        <ListView
+          applications={applications}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onStatusChange={handleStatusChange}
+        />
       ) : (
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <div
-            className="
-              flex
-              gap-6
-              overflow-x-auto
-              pb-4
-              snap-x
-              snap-mandatory
-            "
-          >
-            {statuses.map((status) => (
-              <KanbanColumn
-                key={status}
-                status={status}
-                applications={applicationsByStatus[status]}
-                onCardEdit={handleEdit}
-                onCardDelete={handleDelete}
-                onStatusChange={handleStatusChange}
-                className="snap-start"
-              />
-            ))}
-          </div>
-        </DndContext>
+        <div className="px-6 py-6">
+          <KanbanBoard
+            applications={applications}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onStatusChange={handleStatusChange}
+          />
+        </div>
       )}
+    </div>
+  );
+}
+
+interface ListViewProps {
+  applications: JobApplication[];
+
+  onEdit: (app: JobApplication) => void;
+
+  onDelete: (id: string) => void;
+
+  onStatusChange: (id: string, status: ApplicationStatus) => void;
+}
+
+function ListView({
+  applications,
+  onEdit,
+  onDelete,
+  onStatusChange,
+}: ListViewProps) {
+  if (applications.length === 0) {
+    return (
+      <div
+        className="
+          flex
+          h-[60vh]
+          flex-col
+          items-center
+          justify-center
+          px-6
+          text-center
+        "
+      >
+        <div className="mb-4 text-5xl">📂</div>
+
+        <h3 className="text-lg font-semibold text-gray-900">
+          No applications found
+        </h3>
+
+        <p className="mt-1 text-sm text-gray-500">
+          Try adjusting your filters or add a new application.
+        </p>
+
+        <a
+          href="/add"
+          className="
+            mt-5
+            rounded-xl
+            bg-gray-900
+            px-4
+            py-2.5
+            text-sm
+            font-medium
+            text-white
+            transition-colors
+            hover:bg-gray-800
+          "
+        >
+          Add Application
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto flex max-w-screen-xl flex-col gap-4 px-6 py-6">
+      {applications.map((application) => (
+        <ApplicationCard
+          key={application.id}
+          application={application}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onStatusChange={onStatusChange}
+        />
+      ))}
     </div>
   );
 }

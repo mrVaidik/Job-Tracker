@@ -1,4 +1,4 @@
-// components/status-pipeline.tsx
+
 import { ApplicationStatus } from "@/types/job";
 import { cn } from "@/lib/utils";
 import { CheckCircle, Circle } from "lucide-react";

@@ -1,4 +1,4 @@
-// hooks/use-application-stats.ts
+
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { ApplicationStats, ApplicationStatus } from "@/types/job";
@@ -18,7 +18,7 @@ export function useApplicationStats(): ApplicationStats {
     {} as Record<ApplicationStatus, number>,
   );
 
-  // Initialize all statuses with 0
+  
   const allStatuses: ApplicationStatus[] = [
     "saved",
     "applied",

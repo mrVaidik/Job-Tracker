@@ -1,13 +1,6 @@
-// lib/db.ts
 import { JobApplication, Interview } from "@/types/job";
 
-// In-memory storage with localStorage persistence on client side
-// For API routes, we use this as a simulated DB
-// For server components, we need to handle differently - we'll use fs or global
-// Since this is Next.js, we use a global object to persist across API calls
-
 declare global {
-  // eslint-disable-next-line no-var
   var __jobTrackerDB: {
     applications: JobApplication[];
     interviews: Interview[];
@@ -27,7 +20,7 @@ const initializeDB = () => {
         salary: "$80,000 - $100,000",
         status: "applied",
         appliedDate: new Date().toISOString().split("T")[0],
-        url: "https://example.com/job/1",
+        url: "https://jobs.techcorp.com/posting/frontend-developer",
         contactName: "John Doe",
         contactEmail: "john@techcorp.com",
         notes: "Excited about this role",
@@ -46,7 +39,7 @@ const initializeDB = () => {
         appliedDate: new Date(Date.now() - 7 * 86400000)
           .toISOString()
           .split("T")[0],
-        url: "https://example.com/job/2",
+        url: "https://careers.startupinc.com/jobs/fullstack-engineer",
         contactName: "Jane Smith",
         contactEmail: "jane@startupinc.com",
         notes: "Had a great first interview",
@@ -55,6 +48,7 @@ const initializeDB = () => {
         updatedAt: now,
       },
     ];
+
     const sampleInterviews: Interview[] = [
       {
         id: "int1",
@@ -68,6 +62,7 @@ const initializeDB = () => {
         outcome: "pending",
       },
     ];
+
     global.__jobTrackerDB = {
       applications: sampleApps,
       interviews: sampleInterviews,
@@ -123,7 +118,8 @@ export const deleteApplication = (id: string): boolean => {
   const initialLength = global.__jobTrackerDB.applications.length;
   global.__jobTrackerDB.applications =
     global.__jobTrackerDB.applications.filter((app) => app.id !== id);
-  // Also delete associated interviews
+
+  // Also delete all interviews associated with this application
   global.__jobTrackerDB.interviews = global.__jobTrackerDB.interviews.filter(
     (i) => i.applicationId !== id,
   );

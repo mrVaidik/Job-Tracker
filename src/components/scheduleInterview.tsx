@@ -35,8 +35,6 @@ import { interviewSchema, InterviewFormValues } from "@/lib/validation";
 
 import { z } from "zod";
 
-// ─────────────────────────────────────────────
-
 interface ScheduleInterviewDialogProps {
   open: boolean;
 
@@ -44,8 +42,6 @@ interface ScheduleInterviewDialogProps {
 
   preselectedApplicationId?: string;
 }
-
-// ─────────────────────────────────────────────
 
 export function ScheduleInterviewDialog({
   open,
@@ -76,8 +72,6 @@ export function ScheduleInterviewDialog({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // ─────────────────────────────────────────────
-
   useEffect(() => {
     if (preselectedApplicationId) {
       setFormData((prev) => ({
@@ -86,8 +80,6 @@ export function ScheduleInterviewDialog({
       }));
     }
   }, [preselectedApplicationId]);
-
-  // ─────────────────────────────────────────────
 
   const handleChange = (
     field: keyof InterviewFormValues,
@@ -105,8 +97,6 @@ export function ScheduleInterviewDialog({
       }));
     }
   };
-
-  // ─────────────────────────────────────────────
 
   const validate = (): boolean => {
     try {
@@ -130,8 +120,6 @@ export function ScheduleInterviewDialog({
       return false;
     }
   };
-
-  // ─────────────────────────────────────────────
 
   const handleSubmit = async () => {
     if (!validate()) return;
@@ -159,13 +147,9 @@ export function ScheduleInterviewDialog({
     });
   };
 
-  // ─────────────────────────────────────────────
-
   const selectedApp = applications.find(
     (app) => app.id === formData.applicationId,
   );
-
-  // ─────────────────────────────────────────────
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -177,7 +161,7 @@ export function ScheduleInterviewDialog({
         </DialogHeader>
 
         <div className="space-y-5">
-          {/* APPLICATION */}
+          {}
 
           <div className="space-y-2">
             <Label>Application *</Label>
@@ -206,7 +190,7 @@ export function ScheduleInterviewDialog({
             )}
           </div>
 
-          {/* STATUS */}
+          {}
 
           {selectedApp && (
             <div className="text-sm text-muted-foreground">
@@ -217,7 +201,7 @@ export function ScheduleInterviewDialog({
             </div>
           )}
 
-          {/* ROUND + TYPE */}
+          {}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -264,7 +248,7 @@ export function ScheduleInterviewDialog({
             </div>
           </div>
 
-          {/* DATE + DURATION */}
+          {}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -301,7 +285,7 @@ export function ScheduleInterviewDialog({
             </div>
           </div>
 
-          {/* INTERVIEWER */}
+          {}
 
           <div className="space-y-2">
             <Label>Interviewer Name</Label>
@@ -312,7 +296,7 @@ export function ScheduleInterviewDialog({
             />
           </div>
 
-          {/* NOTES */}
+          {}
 
           <div className="space-y-2">
             <Label>Notes</Label>
@@ -324,7 +308,7 @@ export function ScheduleInterviewDialog({
             />
           </div>
 
-          {/* ACTIONS */}
+          {}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button

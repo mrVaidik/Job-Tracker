@@ -1,4 +1,3 @@
-// store/index.ts
 import { configureStore } from "@reduxjs/toolkit";
 import applicationReducer from "./application-slice";
 import interviewReducer from "./interview-slice";

@@ -1,4 +1,3 @@
-// app/edit/[id]/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -30,10 +29,7 @@ import {
 import { Loader2, ArrowLeft, Save, BriefcaseBusiness } from "lucide-react";
 
 import { WorkType, ApplicationStatus } from "@/types/job";
-
-// ─────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────
+import { StatusPipeline } from "@/components/StatusPipeline";
 
 type FormValues = {
   company: string;
@@ -49,10 +45,6 @@ type FormValues = {
   notes: string;
   tags: string;
 };
-
-// ─────────────────────────────────────────────
-// STATUS NORMALIZER
-// ─────────────────────────────────────────────
 
 function normalizeStatus(status?: string): ApplicationStatus {
   switch (status) {
@@ -85,10 +77,6 @@ function normalizeStatus(status?: string): ApplicationStatus {
   }
 }
 
-// ─────────────────────────────────────────────
-// PAGE
-// ─────────────────────────────────────────────
-
 export default function EditApplicationPage() {
   const router = useRouter();
 
@@ -104,13 +92,9 @@ export default function EditApplicationPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ─────────────────────────────────────────────
-
   const application = useMemo(() => {
     return applications.find((app) => app.id === id);
   }, [applications, id]);
-
-  // ─────────────────────────────────────────────
 
   const [values, setValues] = useState<FormValues>({
     company: "",
@@ -127,10 +111,6 @@ export default function EditApplicationPage() {
     tags: "",
   });
 
-  // ─────────────────────────────────────────────
-  // FETCH APPLICATIONS
-  // ─────────────────────────────────────────────
-
   useEffect(() => {
     async function loadData() {
       try {
@@ -146,10 +126,6 @@ export default function EditApplicationPage() {
 
     loadData();
   }, [dispatch]);
-
-  // ─────────────────────────────────────────────
-  // SET OLD VALUES
-  // ─────────────────────────────────────────────
 
   useEffect(() => {
     if (application) {
@@ -185,16 +161,12 @@ export default function EditApplicationPage() {
     }
   }, [application]);
 
-  // ─────────────────────────────────────────────
-
   const set = (field: keyof FormValues, value: string) => {
     setValues((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
-
-  // ─────────────────────────────────────────────
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,8 +201,6 @@ export default function EditApplicationPage() {
     }
   };
 
-  // ─────────────────────────────────────────────
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -238,8 +208,6 @@ export default function EditApplicationPage() {
       </div>
     );
   }
-
-  // ─────────────────────────────────────────────
 
   if (!application) {
     return (
@@ -251,13 +219,11 @@ export default function EditApplicationPage() {
     );
   }
 
-  // ─────────────────────────────────────────────
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-white to-zinc-100 p-6 md:p-10">
       <div className="mx-auto max-w-5xl">
         <Card className="border-0 shadow-2xl rounded-3xl bg-white/90 backdrop-blur">
-          {/* HEADER */}
+          {}
 
           <CardHeader className="border-b pb-6">
             <div className="flex items-center justify-between">
@@ -287,11 +253,11 @@ export default function EditApplicationPage() {
             </div>
           </CardHeader>
 
-          {/* FORM */}
+          {}
 
           <CardContent className="p-8 md:p-10">
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* COMPANY & ROLE */}
+              {}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
@@ -315,7 +281,7 @@ export default function EditApplicationPage() {
                 </div>
               </div>
 
-              {/* LOCATION & WORK TYPE */}
+              {}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
@@ -350,7 +316,7 @@ export default function EditApplicationPage() {
                 </div>
               </div>
 
-              {/* SALARY & STATUS */}
+              {}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
@@ -393,7 +359,10 @@ export default function EditApplicationPage() {
                 </div>
               </div>
 
-              {/* DATE & URL */}
+              <StatusPipeline
+                currentStatus={application.status}
+                className="w-full"
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
@@ -418,7 +387,7 @@ export default function EditApplicationPage() {
                 </div>
               </div>
 
-              {/* CONTACT */}
+              {}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
@@ -443,7 +412,7 @@ export default function EditApplicationPage() {
                 </div>
               </div>
 
-              {/* TAGS */}
+              {}
 
               <div className="space-y-2">
                 <Label>Tags</Label>
@@ -456,7 +425,7 @@ export default function EditApplicationPage() {
                 />
               </div>
 
-              {/* NOTES */}
+              {}
 
               <div className="space-y-2">
                 <Label>Notes</Label>
@@ -469,7 +438,7 @@ export default function EditApplicationPage() {
                 />
               </div>
 
-              {/* BUTTONS */}
+              {}
 
               <div className="flex flex-col-reverse sm:flex-row gap-4 pt-6 border-t">
                 <Button

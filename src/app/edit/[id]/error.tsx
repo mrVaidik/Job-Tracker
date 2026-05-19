@@ -2,7 +2,7 @@
 
 import { ErrorFallback } from "@/components/ErrorFallback";
 
-export default function ApplicationsError({
+export default function EditApplicationError({
   error,
   reset,
 }: {
@@ -13,8 +13,10 @@ export default function ApplicationsError({
     <ErrorFallback
       error={error}
       reset={reset}
-      title="Failed to load applications"
-      message="There was a problem loading your applications. Please try again."
+      title="Failed to load application"
+      message="The application you're trying to edit could not be found or loaded."
+      showBackButton
+      backUrl="/applications"
     />
   );
 }
