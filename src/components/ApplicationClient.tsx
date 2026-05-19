@@ -77,7 +77,7 @@ export default function ApplicationsClient({
 
   // ✅ Proper loading skeleton
   if (!initialized) {
-    return <ApplicationsSkeleton viewMode={viewMode} />;
+    return <ApplicationsSkeleton />;
   }
 
   return (
